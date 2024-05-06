@@ -4,6 +4,7 @@ import { Button, Rating, Spinner } from 'flowbite-react';
 const App = props => {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [sortOrder, setSortOrder] = useState('asc'); // Stato per tenere traccia dell'ordine di ordinamento
 
   const fetchMovies = () => {
     setLoading(true);
@@ -11,19 +12,57 @@ const App = props => {
     return fetch('http://localhost:8000/movies')
       .then(response => response.json())
       .then(data => {
-        setMovies(data);
+        // Ordina i film in base all'anno di uscita e all'ordine corrente
+        const sortedMovies = sortOrder === 'asc' ? data.sort((a, b) => a.year - b.year) : data.sort((a, b) => b.year - a.year);
+        setMovies(sortedMovies);
+        console.log(sortedMovies)
         setLoading(false);
       });
   }
 
   useEffect(() => {
     fetchMovies();
-  }, []);
+  }, [sortOrder]); // Aggiungi sortOrder come dipendenza per richiamare fetchMovies quando cambia
+
+  // Gestore di eventi per il click del bottone di ordinamento per il rating
+  const handleSortByRatingClick = () => {
+    // Creazione di una copia dell'array
+    const moviesCopy = [...movies];
+
+    // Ordina i film in base al rating
+    const sortedMovies = moviesCopy.sort((a, b) => b.rating - a.rating);
+    setMovies(sortedMovies);
+  };
+
+  const filterMoviesByCategory = (category) => {
+    // Filtra i film che corrispondono alla categoria specificata
+    const filteredMovies = movies.filter(movie => movie.category === category);
+    setMovies(filteredMovies);
+  };
+
+  // Gestore di eventi per il click del bottone di ordinamento
+  const handleSortClick = () => {
+    // Cambia l'ordine corrente in base all'ordine attuale
+    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+  };
 
   return (
     <Layout>
       <Heading />
 
+      <div className="flex justify-end mb-4 mr-4">
+        {/* Aggiungi il bottone di ordinamento */}
+        <Button color="primary" size="sm" onClick={handleSortClick}>
+          {sortOrder === 'asc' ? 'Ordina per Anno (Asc)' : 'Ordina per Anno (Desc)'}
+        </Button>
+        {/* Aggiungi il bottone di ordinamento per rating */}
+        <Button color="primary" size="sm" onClick={handleSortByRatingClick}>
+          Ordina per Rating
+        </Button>
+        <Button color="primary" size="sm" onClick={() => filterMoviesByCategory('action')}>
+          Filtra per Categoria: Azione
+        </Button>
+      </div>
       <MovieList loading={loading}>
         {movies.map((item, key) => (
           <MovieItem key={key} {...item} />
@@ -36,7 +75,7 @@ const App = props => {
 const Layout = props => {
   return (
     <section className="bg-white dark:bg-gray-900">
-      <div className="py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-6">
+      <div className="max-w-screen-xl px-4 py-8 mx-auto lg:py-16 lg:px-6">
         {props.children}
       </div>
     </section>
@@ -45,9 +84,9 @@ const Layout = props => {
 
 const Heading = props => {
   return (
-    <div className="mx-auto max-w-screen-sm text-center mb-8 lg:mb-16">
-      <h1 className="mb-4 text-4xl tracking-tight font-extrabold text-gray-900 dark:text-white">
-        Movie Collection
+    <div className="max-w-screen-sm mx-auto mb-8 text-center lg:mb-16">
+      <h1 className="mb-4 text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+        Movie Collections
       </h1>
 
       <p className="font-light text-gray-500 lg:mb-16 sm:text-xl dark:text-gray-400">
@@ -85,10 +124,10 @@ const MovieItem = props => {
         />
       </div>
 
-      <div className="grow flex flex-col h-full p-3">
-        <div className="grow mb-3 last:mb-0">
+      <div className="flex flex-col h-full p-3 grow">
+        <div className="mb-3 grow last:mb-0">
           {props.year || props.rating
-            ? <div className="flex justify-between align-middle text-gray-900 text-xs font-medium mb-2">
+            ? <div className="flex justify-between mb-2 text-xs font-medium text-gray-900 align-middle">
                 <span>{props.year}</span>
 
                 {props.rating
@@ -105,11 +144,11 @@ const MovieItem = props => {
             : null
           }
 
-          <h3 className="text-gray-900 text-lg leading-tight font-semibold mb-1">
+          <h3 className="mb-1 text-lg font-semibold leading-tight text-gray-900">
             {props.title}
           </h3>
 
-          <p className="text-gray-600 text-sm leading-normal mb-4 last:mb-0">
+          <p className="mb-4 text-sm leading-normal text-gray-600 last:mb-0">
             {props.plot.substr(0, 80)}...
           </p>
         </div>
